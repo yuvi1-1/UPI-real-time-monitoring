@@ -1,0 +1,5 @@
+flask==3.0.3
+kafka-python-ng==2.2.3
+happybase==1.2.0
+# pyspark is provided by the Spark installation on the cluster.
+# For local tests only:  pip install pyspark==3.5.1

@@ -1,0 +1,128 @@
+# Single-laptop version of the cluster (for development and testing).
+# Same roles as the real setup: 1 master (NameNode, Spark master, Kafka, HBase) + 2 workers (DataNode + Spark worker).
+# For the real 3-PC setup see docs/SETUP_3_PCS.md.
+#
+#   ./scripts/start.sh
+#   ./scripts/run_stream.sh
+#   open http://localhost:5000
+
+x-spark-env: &spark-env
+  PROJECT: ${PROJECT:-upi}
+  KAFKA_BOOTSTRAP: kafka:9092
+  HBASE_HOST: hbase
+  HDFS_URL: hdfs://namenode:9000
+  SPARK_MASTER: spark://spark-master:7077
+
+services:
+  # ---------------- messaging ----------------
+  kafka:
+    image: apache/kafka:3.7.0
+    hostname: kafka
+    ports: ["29092:29092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  # ---------------- HDFS: 1 NameNode + 2 DataNodes ----------------
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    hostname: namenode
+    ports: ["9870:9870", "9000:9000"]
+    environment:
+      CLUSTER_NAME: bigdata-lab
+    env_file: docker/hadoop.env
+    volumes: [namenode:/hadoop/dfs/name]
+
+  datanode1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    hostname: datanode1
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file: docker/hadoop.env
+    volumes: [datanode1:/hadoop/dfs/data]
+    depends_on: [namenode]
+
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    hostname: datanode2
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file: docker/hadoop.env
+    volumes: [datanode2:/hadoop/dfs/data]
+    depends_on: [namenode]
+
+  # ---------------- Spark standalone: 1 master + 2 workers ----------------
+  spark-master:
+    build: { context: ., dockerfile: docker/spark.Dockerfile }
+    image: bigdata-lab/spark:3.5.1
+    hostname: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master
+    ports: ["8080:8080", "7077:7077", "4040:4040"]
+    environment: *spark-env
+    volumes: [".:/app"]
+
+  spark-worker-1:
+    build: { context: ., dockerfile: docker/spark.Dockerfile }
+    image: bigdata-lab/spark:3.5.1
+    hostname: spark-worker-1
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --cores 2 --memory 1g
+    environment: *spark-env
+    volumes: [".:/app"]
+    depends_on: [spark-master]
+
+  spark-worker-2:
+    build: { context: ., dockerfile: docker/spark.Dockerfile }
+    image: bigdata-lab/spark:3.5.1
+    hostname: spark-worker-2
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --cores 2 --memory 1g
+    environment: *spark-env
+    volumes: [".:/app"]
+    depends_on: [spark-master]
+
+  # ---------------- HBase (standalone, with Thrift server on 9090) ----------------
+  hbase:
+    image: harisekhon/hbase:2.1
+    hostname: hbase
+    ports: ["16010:16010", "9090:9090"]
+
+  # ---------------- our applications ----------------
+  generator:
+    build: { context: ., dockerfile: docker/app.Dockerfile }
+    image: bigdata-lab/app
+    command: sh -c "python -m $${PROJECT}.generator --rate $${RATE}"
+    environment:
+      PROJECT: ${PROJECT:-upi}
+      RATE: ${RATE:-20}
+      KAFKA_BOOTSTRAP: kafka:9092
+    volumes: [".:/app"]
+    depends_on: [kafka]
+    restart: on-failure
+
+  dashboard:
+    build: { context: ., dockerfile: docker/app.Dockerfile }
+    image: bigdata-lab/app
+    command: python -m dashboard.app
+    ports: ["5000:5000"]
+    environment:
+      PROJECT: ${PROJECT:-upi}
+      HBASE_HOST: hbase
+    volumes: [".:/app"]
+    depends_on: [hbase, generator]
+    restart: on-failure
+
+volumes:
+  namenode:
+  datanode1:
+  datanode2:
