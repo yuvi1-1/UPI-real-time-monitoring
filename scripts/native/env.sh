@@ -14,6 +14,10 @@ export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$SPARK_HOME/bin:$SPARK_HOME
 export KAFKA_BOOTSTRAP=$MASTER:9092
 export HBASE_HOST=$MASTER
 export HBASE_PORT=9090
-export HDFS_URL=hdfs://$MASTER:9000
-export SPARK_MASTER=spark://$MASTER:7077
+export HDFS_URL=hdfs://$MASTER:9820   # 9820: port 9000 is often taken on Windows/WSL
+# NOTE: not named SPARK_MASTER - Spark's own scripts treat that variable as an rsync source
+export SPARK_MASTER_URL=spark://$MASTER:7077
+unset SPARK_MASTER
+# driver listens on all interfaces (needed when the master runs in WSL with mirrored networking)
+export SPARK_DRIVER_OPTS="--conf spark.driver.bindAddress=0.0.0.0 --conf spark.driver.host=$MASTER"
 export PYTHONPATH=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)

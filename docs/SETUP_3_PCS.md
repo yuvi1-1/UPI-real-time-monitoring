@@ -89,7 +89,7 @@ export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 `core-site.xml`:
 ```xml
 <configuration>
-  <property><name>fs.defaultFS</name><value>hdfs://master:9000</value></property>
+  <property><name>fs.defaultFS</name><value>hdfs://master:9820</value></property>
   <property><name>hadoop.tmp.dir</name><value>/home/hadoop/hadoop_tmp</value></property>
 </configuration>
 ```
@@ -155,7 +155,7 @@ export HBASE_MANAGES_ZK=true
 `/opt/hbase/conf/hbase-site.xml`:
 ```xml
 <configuration>
-  <property><name>hbase.rootdir</name><value>hdfs://master:9000/hbase</value></property>
+  <property><name>hbase.rootdir</name><value>hdfs://master:9820/hbase</value></property>
   <property><name>hbase.cluster.distributed</name><value>false</value></property>
   <property><name>hbase.zookeeper.property.dataDir</name><value>/home/hadoop/zookeeper</value></property>
   <property><name>hbase.unsafe.stream.capability.enforce</name><value>false</value></property>
@@ -184,6 +184,31 @@ Web UIs (open from any PC): HDFS `http://master:9870` · Spark `http://master:80
 ./scripts/native/run_dashboard.sh         # terminal 3: open http://master:5000
 ```
 After a few minutes, run the batch job: `./scripts/native/run_batch.sh`
+
+## Using WSL on Windows as a node (what we did for the master)
+
+WSL works as a cluster node if it uses **mirrored networking** (WSL then shares the laptop's real Wi-Fi IP):
+
+1. `%USERPROFILE%\.wslconfig`:
+   ```
+   [wsl2]
+   networkingMode=mirrored
+   memory=8GB
+   processors=4
+   ```
+2. Admin PowerShell: `Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow` then `wsl --shutdown`
+3. `/etc/wsl.conf`: `[boot] systemd=true` and `[network] hostname=master` + `generateHosts=false`
+
+In mirrored mode a program **cannot connect to its own Wi‑Fi IP** if the server listens only on that IP, so every
+server on the WSL node must listen on `0.0.0.0`:
+
+- `hdfs-site.xml`: `dfs.namenode.rpc-bind-host`, `dfs.namenode.servicerpc-bind-host`, `dfs.namenode.http-bind-host` = `0.0.0.0`
+- `hbase-site.xml`: `hbase.master.ipc.address`, `hbase.regionserver.ipc.address` = `0.0.0.0`
+- Spark: `start-master.sh --host 0.0.0.0`; spark-submit with `--conf spark.driver.bindAddress=0.0.0.0 --conf spark.driver.host=master`
+  (already in `scripts/native/`)
+- Port 9000 is often already used by Windows, so HDFS uses **9820** here.
+
+If the Wi‑Fi changes, every IP changes: update `/etc/hosts` on all three nodes.
 
 ---
 

@@ -8,7 +8,7 @@ KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
 HBASE_HOST = os.getenv("HBASE_HOST", "hbase")
 HBASE_PORT = int(os.getenv("HBASE_PORT", "9090"))  # HBase Thrift server
 HDFS_URL = os.getenv("HDFS_URL", "hdfs://namenode:9000")
-SPARK_MASTER = os.getenv("SPARK_MASTER", "spark://spark-master:7077")
+SPARK_MASTER = os.getenv("SPARK_MASTER_URL", "spark://spark-master:7077")
 
 # Store backend: "hbase" (real) or "memory" (only for local tests without a cluster)
 STORE = os.getenv("STORE", "hbase")

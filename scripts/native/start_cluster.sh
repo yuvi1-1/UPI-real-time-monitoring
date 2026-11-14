@@ -8,7 +8,8 @@ echo ">> HDFS";   start-dfs.sh
 hdfs dfsadmin -safemode wait
 hdfs dfs -mkdir -p /bigdata/upi
 
-echo ">> Spark";  start-master.sh && start-workers.sh
+# --host 0.0.0.0: listen on all interfaces; workers still connect to spark://master:7077
+echo ">> Spark";  start-master.sh --host 0.0.0.0 && start-workers.sh
 
 echo ">> Kafka";  kafka-server-start.sh -daemon $KAFKA_HOME/config/kraft/server.properties
 sleep 8
