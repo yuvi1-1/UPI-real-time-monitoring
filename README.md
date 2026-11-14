@@ -2,7 +2,7 @@
 ### Kafka · Spark Structured Streaming · HDFS · HBase
 
 **CSBB 422 – Big Data Analytics, Lab Project · NIT Delhi**
-Group: `[Group Name]` — Yuvraj Pegu (`231210129`), `[Member 2]` (`[Roll No.]`)
+Group: Yuvraj Pegu - (231210129), Viraj Tyagi - (231210124), Srishu Ray - (231210098), Vivek Bhardwaj - (231210125) 
 
 A real-time pipeline that ingests a live stream of UPI payments, computes live metrics (volume and value by bank, city, app and merchant category, success/failure rates) and flags suspicious activity — very large payments, rapid repeated payments and bursts of failed attempts — on a distributed Hadoop/Spark cluster (1 master + 2 workers).
 
