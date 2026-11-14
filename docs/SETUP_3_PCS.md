@@ -145,7 +145,10 @@ cd /opt/kafka
 bin/kafka-storage.sh format -t $(bin/kafka-storage.sh random-uuid) -c config/kraft/server.properties
 ```
 
-## Step 8 — Configure HBase (master only, data stored in HDFS)
+## Step 8 — Configure HBase (master only)
+
+HBase keeps its own files on the master's local disk (standalone mode). We first used HDFS for this, but over Wi‑Fi
+the HBase write-ahead log kept timing out; raw events still go to HDFS.
 
 `/opt/hbase/conf/hbase-env.sh`:
 ```bash
@@ -155,7 +158,7 @@ export HBASE_MANAGES_ZK=true
 `/opt/hbase/conf/hbase-site.xml`:
 ```xml
 <configuration>
-  <property><name>hbase.rootdir</name><value>hdfs://master:9820/hbase</value></property>
+  <property><name>hbase.rootdir</name><value>file:///home/hadoop/hbase-data</value></property>
   <property><name>hbase.cluster.distributed</name><value>false</value></property>
   <property><name>hbase.zookeeper.property.dataDir</name><value>/home/hadoop/zookeeper</value></property>
   <property><name>hbase.unsafe.stream.capability.enforce</name><value>false</value></property>

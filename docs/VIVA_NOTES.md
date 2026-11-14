@@ -50,7 +50,7 @@ count 't1'   describe 't1'   disable 't1'   drop 't1'   status
 
 **What is the checkpoint for?** It stores the Kafka offsets and progress in HDFS, so after a restart the job continues exactly where it stopped.
 
-**Why HBase for the dashboard and HDFS for raw data?** HDFS is great for large sequential scans (batch jobs) but not for small random reads. HBase gives millisecond reads/writes by row key, which the dashboard needs every 3 s. HBase itself stores its files on HDFS.
+**Why HBase for the dashboard and HDFS for raw data?** HDFS is great for large sequential scans (batch jobs) but not for small random reads. HBase gives millisecond reads/writes by row key, which the dashboard needs every 3 s. (In our setup HBase runs standalone on the master with its files on local disk; in production it would store its files on HDFS.)
 
 **Explain your row key design.** Metrics: `dimension|value` so one prefix scan returns a whole chart (e.g. all banks). Alerts: reverse timestamp first, so the newest alerts are at the top of the table and `scan LIMIT 25` gives the latest ones without sorting.
 

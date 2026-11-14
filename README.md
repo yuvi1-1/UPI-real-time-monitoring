@@ -8,6 +8,15 @@ A real-time pipeline that ingests a live stream of UPI payments, computes live m
 
 ![UPI dashboard](docs/dashboard_upi.png)
 
+### Running on our cluster
+Live dashboard while streaming on the real cluster (master = Legion laptop, worker1 = MacBook):
+
+![Live dashboard on the cluster](docs/cluster_dashboard.png)
+
+| Spark master: worker registered, streaming + batch jobs | HDFS NameNode: DataNode on worker1 |
+|---|---|
+| ![Spark master UI](docs/cluster_spark_master.png) | ![HDFS datanodes](docs/cluster_hdfs_datanodes.png) |
+
 ---
 
 ## Architecture
